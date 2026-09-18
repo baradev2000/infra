@@ -10,3 +10,8 @@ output "ansible_host" {
     ansible_user = "ec2-user"
   }
 }
+
+output "github_actions_deploy_role_arn" {
+  description = "ARN à enregistrer dans le secret AWS_DEPLOY_ROLE_ARN des dépôts GitHub."
+  value       = aws_iam_role.github_actions_deploy.arn
+}

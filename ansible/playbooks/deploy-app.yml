@@ -1,0 +1,54 @@
+---
+- name: Deploy the Todo application in production
+  hosts: prod
+  become: true
+  vars:
+    app_root: /opt/examen/app
+    backend_repository: https://github.com/baradev2000/examen_b.git
+    frontend_repository: https://github.com/baradev2000/examen_f.git
+
+  tasks:
+    - name: Create application directory
+      ansible.builtin.file:
+        path: "{{ app_root }}"
+        state: directory
+        mode: "0755"
+
+    - name: Retrieve backend source from main
+      ansible.builtin.git:
+        repo: "{{ backend_repository }}"
+        dest: "{{ app_root }}/backend"
+        version: main
+        force: true
+
+    - name: Retrieve frontend source from main
+      ansible.builtin.git:
+        repo: "{{ frontend_repository }}"
+        dest: "{{ app_root }}/frontend"
+        version: main
+        force: true
+
+    - name: Generate application database password once
+      ansible.builtin.shell: |
+        set -euo pipefail
+        secrets_file="{{ app_root }}/.env"
+        if [ ! -f "$secrets_file" ]; then
+          umask 077
+          echo "APP_DB_PASSWORD=$(openssl rand -hex 24)" > "$secrets_file"
+        fi
+      args:
+        executable: /bin/bash
+      changed_when: false
+      no_log: true
+
+    - name: Install application Compose configuration
+      ansible.builtin.template:
+        src: ../templates/app-compose.yml.j2
+        dest: "{{ app_root }}/compose.yml"
+        mode: "0644"
+
+    - name: Build and start the Todo application
+      ansible.builtin.command: docker compose -f compose.yml up -d --build --remove-orphans
+      args:
+        chdir: "{{ app_root }}"
+
