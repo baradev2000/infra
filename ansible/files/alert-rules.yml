@@ -35,6 +35,30 @@ groups:
 
   - name: services
     rules:
+      - alert: ObservabilityComponentDown
+        expr: up{job="observability-stack"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Un composant de l'observabilité est indisponible"
+
+      - alert: NginxExporterDown
+        expr: up{job="nginx-exporter"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Les métriques Nginx ne sont plus disponibles"
+
+      - alert: BackendDown
+        expr: up{job="todo-backend"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Le backend Todo ou son endpoint Actuator est indisponible"
+
       - alert: ContainerDown
         expr: time() - container_last_seen{name!=""} > 120
         for: 2m
@@ -50,4 +74,3 @@ groups:
           severity: critical
         annotations:
           summary: "Une URL publique ne répond pas HTTP 2xx"
-

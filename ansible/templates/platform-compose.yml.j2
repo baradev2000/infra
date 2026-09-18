@@ -65,6 +65,46 @@ services:
     networks:
       - proxy
 
+  loki:
+    image: grafana/loki:3.3.2
+    restart: unless-stopped
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./loki.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+    networks:
+      - proxy
+
+  alloy:
+    image: grafana/alloy:v1.7.4
+    restart: unless-stopped
+    command: run /etc/alloy/config.alloy --server.http.listen-addr=0.0.0.0:12345
+    volumes:
+      - ./alloy.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/var/lib/alloy/data
+    networks:
+      - proxy
+
+  tempo:
+    image: grafana/tempo:2.6.1
+    restart: unless-stopped
+    command: -config.file=/etc/tempo/config.yml
+    volumes:
+      - ./tempo.yml:/etc/tempo/config.yml:ro
+      - tempo_data:/var/tempo
+    networks:
+      - proxy
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.116.1
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol-contrib/config.yml"]
+    volumes:
+      - ./otel-collector.yml:/etc/otelcol-contrib/config.yml:ro
+    networks:
+      - proxy
+
   alertmanager:
     image: prom/alertmanager:v0.27.0
     restart: unless-stopped
@@ -141,3 +181,6 @@ volumes:
   prometheus_data:
   alertmanager_data:
   grafana_data:
+  loki_data:
+  alloy_data:
+  tempo_data:

@@ -72,6 +72,17 @@
         dest: "{{ platform_root }}/prometheus.yml"
         mode: "0644"
 
+    - name: Install logs and traces configurations
+      ansible.builtin.copy:
+        src: "../files/{{ item }}"
+        dest: "{{ platform_root }}/{{ item }}"
+        mode: "0644"
+      loop:
+        - loki.yml
+        - alloy.alloy
+        - tempo.yml
+        - otel-collector.yml
+
     - name: Install Prometheus alert rules
       ansible.builtin.copy:
         src: ../files/alert-rules.yml

@@ -23,11 +23,18 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/tododb
       SPRING_DATASOURCE_USERNAME: todo
       SPRING_DATASOURCE_PASSWORD: ${APP_DB_PASSWORD}
+      JAVA_TOOL_OPTIONS: -javaagent:/opt/opentelemetry/opentelemetry-javaagent.jar
+      OTEL_SERVICE_NAME: todo-backend
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=production,service.version=${APP_VERSION:-unknown}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_METRICS_EXPORTER: none
     depends_on:
       db:
         condition: service_healthy
     networks:
       - app
+      - proxy
 
   frontend:
     build: ./frontend
@@ -44,6 +51,17 @@ services:
       - app
       - proxy
 
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.4.1
+    restart: unless-stopped
+    command:
+      - --nginx.scrape-uri=http://frontend:8080/stub_status
+    depends_on:
+      - frontend
+    networks:
+      - app
+      - proxy
+
 networks:
   app:
   proxy:
@@ -52,4 +70,3 @@ networks:
 
 volumes:
   postgres_data:
-

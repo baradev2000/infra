@@ -52,3 +52,29 @@ Dans `examen_b`, ajoutez aussi :
 
 Dans GitHub, protégez ensuite la branche `main` : Pull Request obligatoire,
 checks CI obligatoires, force push et suppression interdits.
+
+## Observabilité de production
+
+Le playbook Ansible installe et configure automatiquement :
+
+- **Prometheus** : CPU, RAM, disque, Traefik, cAdvisor, Nginx et endpoint
+  Spring Boot Actuator ;
+- **Grafana** : le dashboard `Todo - Production` est provisionné à chaque
+  installation ;
+- **Alertmanager** : reçoit les alertes `InstanceDown`, CPU/RAM/disque,
+  conteneur, URL publique, backend et composants d'observabilité ;
+- **Loki + Grafana Alloy** : centralisent les logs des conteneurs Docker ;
+- **Tempo + OpenTelemetry Collector** : reçoivent les traces du backend ;
+- **Nginx Prometheus Exporter** : expose les requêtes et connexions Nginx,
+  sans rendre l'endpoint de statut public.
+
+Dans Grafana, ouvrir le dashboard **Todo - Production** pour les métriques,
+les alertes et les logs. Pour les traces, ouvrir **Explore**, sélectionner la
+source **Tempo**, puis rechercher le service `todo-backend`. L'endpoint
+`/actuator/prometheus` et le statut Nginx ne sont accessibles que sur les
+réseaux Docker internes.
+
+Alertmanager est volontairement livré avec un récepteur neutre : il affiche et
+regroupe les alertes sans envoyer de notification externe. Pour recevoir des
+notifications, ajouter ensuite un récepteur Telegram, email ou Slack dans
+`ansible/files/alertmanager.yml`, sans y committer de secret.
