@@ -53,11 +53,49 @@
         state: directory
         mode: "0755"
 
+    - name: Create monitoring configuration directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ platform_root }}/rules"
+        - "{{ platform_root }}/grafana/provisioning/datasources"
+        - "{{ platform_root }}/grafana/provisioning/dashboards"
+        - "{{ platform_root }}/grafana/provisioning/alerting"
+        - "{{ platform_root }}/grafana/provisioning/plugins"
+        - "{{ platform_root }}/grafana/dashboards"
+
     - name: Install Prometheus configuration
-      ansible.builtin.copy:
+      ansible.builtin.template:
         src: ../files/prometheus.yml
         dest: "{{ platform_root }}/prometheus.yml"
         mode: "0644"
+
+    - name: Install Prometheus alert rules
+      ansible.builtin.copy:
+        src: ../files/alert-rules.yml
+        dest: "{{ platform_root }}/rules/alert-rules.yml"
+        mode: "0644"
+
+    - name: Install Alertmanager configuration
+      ansible.builtin.copy:
+        src: ../files/alertmanager.yml
+        dest: "{{ platform_root }}/alertmanager.yml"
+        mode: "0644"
+
+    - name: Provision Grafana datasources and dashboards
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+        mode: "0644"
+      loop:
+        - src: ../files/grafana-datasources.yml
+          dest: "{{ platform_root }}/grafana/provisioning/datasources/datasources.yml"
+        - src: ../files/grafana-dashboard-provider.yml
+          dest: "{{ platform_root }}/grafana/provisioning/dashboards/dashboards.yml"
+        - src: ../files/production-dashboard.json
+          dest: "{{ platform_root }}/grafana/dashboards/production-dashboard.json"
 
     - name: Generate platform secrets once
       ansible.builtin.shell: |
@@ -81,7 +119,7 @@
         dest: "{{ platform_root }}/compose.yml"
         mode: "0644"
 
-    - name: Start Traefik, SonarQube, Prometheus and Grafana
+    - name: Start platform and monitoring services
       ansible.builtin.command: docker compose -f compose.yml up -d
       args:
         chdir: "{{ platform_root }}"
