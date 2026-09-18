@@ -1,0 +1,88 @@
+---
+- name: Provision the production Todo platform
+  hosts: prod
+  become: true
+
+  tasks:
+    - name: Install Docker and prerequisites
+      ansible.builtin.dnf:
+        name:
+          - docker
+          - git
+          - openssl
+        state: present
+        update_cache: true
+
+    - name: Start Docker at boot
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Allow ec2-user to use Docker
+      ansible.builtin.user:
+        name: ec2-user
+        groups: docker
+        append: true
+
+    - name: Create Docker CLI plugins directory
+      ansible.builtin.file:
+        path: /usr/local/lib/docker/cli-plugins
+        state: directory
+        mode: "0755"
+
+    - name: Install Docker Compose plugin
+      ansible.builtin.get_url:
+        url: "https://github.com/docker/compose/releases/download/{{ compose_plugin_version }}/docker-compose-linux-x86_64"
+        dest: /usr/local/lib/docker/cli-plugins/docker-compose
+        mode: "0755"
+
+    - name: Persist SonarQube kernel requirement
+      ansible.builtin.copy:
+        dest: /etc/sysctl.d/99-sonarqube.conf
+        content: "vm.max_map_count=524288\n"
+        mode: "0644"
+
+    - name: Apply SonarQube kernel requirement
+      ansible.builtin.command: /sbin/sysctl --system
+      changed_when: false
+
+    - name: Create platform directory
+      ansible.builtin.file:
+        path: "{{ platform_root }}"
+        state: directory
+        mode: "0755"
+
+    - name: Install Prometheus configuration
+      ansible.builtin.copy:
+        src: ../files/prometheus.yml
+        dest: "{{ platform_root }}/prometheus.yml"
+        mode: "0644"
+
+    - name: Generate platform secrets once
+      ansible.builtin.shell: |
+        set -euo pipefail
+        secrets_file="{{ platform_root }}/.env"
+        if [ ! -f "$secrets_file" ]; then
+          umask 077
+          {
+            echo "SONAR_DB_PASSWORD=$(openssl rand -hex 24)"
+            echo "GRAFANA_ADMIN_PASSWORD=$(openssl rand -base64 24)"
+          } > "$secrets_file"
+        fi
+      args:
+        executable: /bin/bash
+      changed_when: false
+      no_log: true
+
+    - name: Install platform Compose configuration
+      ansible.builtin.template:
+        src: ../templates/platform-compose.yml.j2
+        dest: "{{ platform_root }}/compose.yml"
+        mode: "0644"
+
+    - name: Start Traefik, SonarQube, Prometheus and Grafana
+      ansible.builtin.command: docker compose -f compose.yml up -d
+      args:
+        chdir: "{{ platform_root }}"
+      changed_when: false

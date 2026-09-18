@@ -1,0 +1,6 @@
+app_domain: bayebaraexamentodo.duckdns.org
+grafana_domain: bayebaraexamengrafana.duckdns.org
+sonarqube_domain: bayebaraexamensonarqub.duckdns.org
+
+platform_root: /opt/examen/platform
+compose_plugin_version: v2.36.0

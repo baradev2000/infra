@@ -1,0 +1,8 @@
+# Nom exact d'une paire de clés déjà créée dans EC2 > Key pairs.
+key_name = "todo-prod-key"
+
+# Remplacez par votre IP publique suivie de /32.
+admin_cidr = "203.0.113.10/32"
+
+# Garder m7i-flex.large est recommandé pour SonarQube et le monitoring.
+# instance_type = "m7i-flex.large"
